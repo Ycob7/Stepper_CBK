@@ -1,6 +1,9 @@
 #include <Tic.h>
-#include <LiquidCrystal.h>
 #include <ezButton.h>
+
+#include "isr.hpp"     // ISR - Przerwania
+#include "print.hpp"   // SERIAL AND LCD - Wypisywanie
+#include "resetct.hpp" // Reset Command Timeout
 
 #ifdef SERIAL_PORT_HARDWARE_OPEN
 #define ticSerial SERIAL_PORT_HARDWARE_OPEN
@@ -10,29 +13,8 @@ SoftwareSerial ticSerial(10, 11);
 #endif
 
 TicSerial tic(ticSerial);
-LiquidCrystal lcd(12, 11, 6, 5, 4, 3);
 ezButton kranc_1(2);
 ezButton kranc_2(7);
-
-// ISR DECLARATION
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-volatile bool limitSwitch1Touched = false;
-volatile bool limitSwitch2Touched = false;
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-void limitSwitch1ISR()
-{
-  limitSwitch1Touched = true;
-  detachInterrupt(digitalPinToInterrupt(2));
-}
-
-void limitSwitch2ISR()
-{
-  limitSwitch2Touched = true;
-  detachInterrupt(digitalPinToInterrupt(7));
-}
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 void setup()
 {
@@ -42,90 +24,22 @@ void setup()
   tic.haltAndSetPosition(0);
   delay(300);
 
+  // Stepper declaration
   tic.setProduct(TicProduct::Tic36v4);
   tic.setStepMode(TicStepMode::Microstep1);
-  tic.setStartingSpeed(1000000);
+  tic.setStartingSpeed(1000000); // 100 steps/second
   tic.setDecayMode(TicDecayMode::Mixed);
-  tic.setMaxAccel(10000);
-  tic.setMaxSpeed(5000000);
+  tic.setMaxAccel(10000);   // 100 steps/second mozna 50 dac ale idzie wolniej
+  tic.setMaxSpeed(5000000); // 500 steps/second
 
   delay(300);
   tic.energize();
   tic.exitSafeStart();
-  lcd.begin(20, 4);
-  lcd.setCursor(0, 0);
-  lcd.print("Obecna pozcyja: ");
-  lcd.setCursor(0, 2);
-  lcd.print("Zadana pozycja: ");
-  delay(50);
+  lcd_attach();
 }
-
-void resetCommandTimeout() // Wywoływac 1 raz/s albo będzie error
-{
-  tic.resetCommandTimeout();
-}
-
-void delayWhileResettingCommandTimeout(uint32_t ms) // Ruch nie będzie przerywany przez "bledy"
-{
-  uint32_t start = millis();
-  do
-  {
-    if (limitSwitch1Touched == true || limitSwitch2Touched == true)
-    {
-      Serial.println("Zmiana wartości kranc");
-      Serial.println("ZADAJ DOBRA POZYCJE");
-      tic.haltAndSetPosition(0);
-      tic.exitSafeStart();
-      break;
-    }
-    resetCommandTimeout();
-  } while ((uint32_t)(millis() - start) <= ms);
-
-  if (digitalRead(2) == 0)
-  {
-    delay(100);
-    attachInterrupt(digitalPinToInterrupt(2), limitSwitch1ISR, RISING);
-    limitSwitch1Touched = false;
-  }
-  if (digitalRead(7) == 0)
-  {
-    delay(100);
-    attachInterrupt(digitalPinToInterrupt(7), limitSwitch2ISR, RISING);
-    limitSwitch2Touched = false;
-  }
-}
-
-// void waitForPosition(int32_t targetPosition)// Czekanie na osiagniecie zamierzonej pozycji
-//{
-//   do
-//   {
-//     resetCommandTimeout();
-//   } while (tic.getCurrentPosition() != targetPosition);
-// }
 
 int previousLimitSwitchState1 = HIGH;
 int previousLimitSwitchState2 = HIGH;
-
-// WPISYWANIE POZYCJI
-float getValidPosition(const char *prompt)
-{
-  float position;
-  do
-  {
-    while (Serial.available() > 0)
-      Serial.read();
-
-    Serial.print("Jaka ");
-    Serial.print(prompt);
-    Serial.println(" pozycja ???");
-    while (!Serial.available())
-      position = Serial.parseFloat();
-
-  } while (position < 0 || position > 500);
-
-  return position;
-}
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 void loop()
 {
@@ -151,31 +65,15 @@ void loop()
   zadana_pos = getValidPosition("Zadana");
   Serial.println(zadana_pos);
 
-  // ZAMIANA POZYCJI NA ODLEGŁOŚĆI POKAZANIE NA LCD
+  // ZAMIANA POZYCJI NA ODLEGŁOŚĆI
   zmiana = zadana_pos - obecna_pos;
   double odl = zmiana * 2 / 3 * 100; //*2 bo mikrokroki
-  long int czekanie = (abs(odl)) * 4 + 5000;
+  long int czekanie = (abs(odl)) * 4 + 5000; // 5000 *2 jesli zmniejszymy przyspieszenie
 
-  // PŁYTKA LCD
-  Serial.print("TWOJA OBECNA POZYCJA: ");
-  Serial.print(obecna_pos);
-  Serial.println(" mm");
-  lcd.setCursor(0, 1);
-  lcd.print(obecna_pos);
-  Serial.print("TWOJA ZADANA POZYCJA: ");
-  Serial.print(zadana_pos);
-  Serial.println(" mm");
-  lcd.setCursor(0, 3);
-  lcd.print(zadana_pos);
-  Serial.print("ZMIANA POZYCJI O: ");
-  Serial.print(zmiana);
-  Serial.println(" mm");
-  Serial.print("ZMIANA ODL o : ");
-  Serial.print(odl);
-  Serial.println(" krokow");
-  delay(500);
+  // WYPISANIIE NA LCD I SERIAL MONITOR
+  displayPositionInfo(obecna_pos, zadana_pos);
 
-  // PRZEJAZD NA DANA POZYCJE
+  // PRZEJAZD W LEWO
   if (odl < 0)
   {
     if (limitSwitchState1 == LOW && previousLimitSwitchState1 == HIGH)
@@ -186,14 +84,15 @@ void loop()
       tic.haltAndHold();
       tic.exitSafeStart();
       tic.setTargetPosition(2 * odl);
-      delayWhileResettingCommandTimeout(czekanie);
-      delay(100);
+      delayWhileResettingCommandTimeout(czekanie, tic);
+      delay(300);
       tic.haltAndSetPosition(0);
       tic.exitSafeStart();
       limitSwitch1Touched = false;
     }
   }
 
+  // PRZEJAZD W PRAWO
   else if (odl > 0)
   {
     if (limitSwitchState2 == LOW && previousLimitSwitchState2 == HIGH)
@@ -204,8 +103,8 @@ void loop()
       tic.haltAndHold();
       tic.exitSafeStart();
       tic.setTargetPosition(2 * odl);
-      delayWhileResettingCommandTimeout(czekanie);
-      delay(100);
+      delayWhileResettingCommandTimeout(czekanie, tic);
+      delay(300);
       tic.haltAndSetPosition(0);
       tic.exitSafeStart();
       limitSwitch2Touched = false;
@@ -215,6 +114,7 @@ void loop()
   limitSwitch1Touched = (limitSwitchState1 == HIGH && previousLimitSwitchState1 == HIGH);
   limitSwitch2Touched = (limitSwitchState2 == HIGH && previousLimitSwitchState2 == HIGH);
 
+  // JEŚLI DOTYKA KRANC_1 TO PRZEJAZD W LEWO
   if (limitSwitch1Touched == true)
   {
     Serial.println("Powinien isc w LEWO <---");
@@ -222,13 +122,14 @@ void loop()
     tic.haltAndHold();
     tic.exitSafeStart();
     tic.setTargetPosition(2 * odl);
-    delayWhileResettingCommandTimeout(czekanie);
-    delay(100);
+    delayWhileResettingCommandTimeout(czekanie, tic);
+    delay(300);
     tic.haltAndSetPosition(0);
     tic.exitSafeStart();
     limitSwitch1Touched = false;
   }
 
+  // JEŚLI DOTYKA KRANC_2 TO PRZEJAZD W PRAWO
   if (limitSwitch2Touched == true)
   {
     Serial.println("Powinien isc w PRAWO --->");
@@ -236,8 +137,8 @@ void loop()
     tic.haltAndHold();
     tic.exitSafeStart();
     tic.setTargetPosition(2 * odl);
-    delayWhileResettingCommandTimeout(czekanie);
-    delay(100);
+    delayWhileResettingCommandTimeout(czekanie, tic);
+    delay(300);
     tic.haltAndSetPosition(0);
     tic.exitSafeStart();
     limitSwitch2Touched = false;
@@ -248,5 +149,5 @@ void loop()
   tic.exitSafeStart();
   tic.energize();
   tic.resetCommandTimeout();
-  delay(100);
+  delay(300);
 }
