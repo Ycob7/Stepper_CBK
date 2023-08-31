@@ -14,7 +14,7 @@ It means that from 0 to 5 second the motor gains velocity and after 5 seconds th
 ## Included devices:
 - Actuator - LD 40-500 S2 SL + customized support tube
 - Stepper motor - PKP 268MD28BL
-- Arduino Leonardo
+- Arduino Nano
 - Stepper driver - Tic 36v4
 - Switch mode power supply - LCS75US12
 - 2x Limit Switch - MZX1 361 306
@@ -44,33 +44,31 @@ It means that from 0 to 5 second the motor gains velocity and after 5 seconds th
 There is also more pins to connect which are not on shown on the figure.
 Here are the others: 
 
-### - Connection between Tic driver and Arduino Leonardo:
-    - SCL --> SCL (red wire)
-    - SDA --> SDA (white wire)
+### - Connection between Tic driver and Arduino Nano:
     - GND --> GND (black wire)
-    - TX  --> RX  (grey wire)
-    - RX  --> TX  (purple wire)
+    - TX  --> 9  (grey wire)
+    - RX  --> 10  (purple wire)
     - 5V  --> 5V  (red wire)
 
-### - Connection between Limit Switch and Arduino Leonardo/Breadboard:
+### - Connection between Limit Switch and Arduino Nano/Breadboard:
     1. Limit Switch:
     - NC --> 2 (blue && brown wire)
     - C  --> GND (blue && purple wire) - Breadboard
     2. Limit Switch:
-    - NC --> 7      (white && grey wire)
+    - NC --> 3      (white && grey wire)
     - C  --> GND  (white && orange wire) - Breadboard
 
-### - Connection between LCD and Arduino Leonardo/Breadboard/Potentiometer:
+### - Connection between LCD and Arduino Nano/Breadboard/Potentiometer:
     1.  - VSS --> GND (black wire) - Breadboard
     2.  - VDD --> 5V (red wire) - Breadboard
     3.  - VO --> Output (green wire) - Potentiometer
     4.  - RS --> 12 (blue && blue wire)
     5.  - RW --> GND (black wire) - Breadboard
     6.  - E --> 11 (blue && purple wire)
-    11. - DB2 --> 6 (orange && orange wire)
-    12. - DB5 --> 5 (orange && yellow wire)
-    13. - DB6 --> 4 (orange && yellow wire)
-    14. - DB7 --> 3 (orange && orange wire)
+    11. - DB2 --> 7 (orange && orange wire)
+    12. - DB5 --> 6 (orange && yellow wire)
+    13. - DB6 --> 5 (orange && yellow wire)
+    14. - DB7 --> 4 (orange && orange wire)
     15. - LED A --> 5V (red wire) - Breadboard
     16. - LED K --> GND (black wire) - Breadboard
 
@@ -79,12 +77,12 @@ Here are the others:
     - Output (Vout) --> V0 (green wire) - LCD
     - Ground (Vg) --> GND (white wire) - Breadboard
 
-### - Connection between Breadboard and Arduino Leonardo:
+### - Connection between Breadboard and Arduino Nano:
     - 5V (+)  --> 5V (red wire) 
     - GND (-) --> GND (brown wire) 
 
-### - Connection between USB Port and Arduino Leonardo:
-    - USB cable (Micro USB) 
+### - Connection between USB Port and Arduino Nano:
+    - USB cable (Mini USB) 
 
 # *Instruction - Control of the Stepper Motor*
 

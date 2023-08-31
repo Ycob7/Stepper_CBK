@@ -25,7 +25,7 @@ float getValidPosition(const char *prompt)
 
 
 //USTAWIENIE POCZĄTKOWEGO STANU LCD
-LiquidCrystal lcd(12, 11, 6, 5, 4, 3);
+LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
 
 void lcd_attach()
 {

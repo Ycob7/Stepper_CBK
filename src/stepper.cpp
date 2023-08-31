@@ -9,12 +9,12 @@
 #define ticSerial SERIAL_PORT_HARDWARE_OPEN
 #else
 #include <SoftwareSerial.h>
-SoftwareSerial ticSerial(10, 11);
+SoftwareSerial ticSerial(9, 10);
 #endif
 
 TicSerial tic(ticSerial);
 ezButton kranc_1(2);
-ezButton kranc_2(7);
+ezButton kranc_2(3);
 
 void setup()
 {
@@ -46,7 +46,7 @@ void loop()
 
   //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   attachInterrupt(digitalPinToInterrupt(2), limitSwitch1ISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(7), limitSwitch2ISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(3), limitSwitch2ISR, RISING);
   //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   kranc_1.loop();

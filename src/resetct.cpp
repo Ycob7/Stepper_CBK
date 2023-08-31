@@ -3,12 +3,12 @@
 #include "isr.hpp"
 #include "resetct.hpp"
 
-#ifdef SERIAL_PORT_HARDWARE_OPEN
-#define ticSerial SERIAL_PORT_HARDWARE_OPEN
-#else
-#include <SoftwareSerial.h>
-SoftwareSerial ticSerial(10, 11);
-#endif
+// #ifdef SERIAL_PORT_HARDWARE_OPEN
+// #define ticSerial SERIAL_PORT_HARDWARE_OPEN
+// #else
+// #include <SoftwareSerial.h>
+// SoftwareSerial ticSerial(9, 10);
+// #endif
 
 void delayWhileResettingCommandTimeout(uint32_t ms, TicSerial tic) // Ruch nie będzie przerywany przez "bledy"
 {
@@ -32,10 +32,10 @@ void delayWhileResettingCommandTimeout(uint32_t ms, TicSerial tic) // Ruch nie b
         attachInterrupt(digitalPinToInterrupt(2), limitSwitch1ISR, RISING);
         limitSwitch1Touched = false;
     }
-    if (digitalRead(7) == 0)
+    if (digitalRead(3) == 0)
     {
         delay(100);
-        attachInterrupt(digitalPinToInterrupt(7), limitSwitch2ISR, RISING);
+        attachInterrupt(digitalPinToInterrupt(3), limitSwitch2ISR, RISING);
         limitSwitch2Touched = false;
     }
 }

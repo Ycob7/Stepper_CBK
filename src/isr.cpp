@@ -13,5 +13,5 @@ void limitSwitch1ISR()
 void limitSwitch2ISR()
 {
     limitSwitch2Touched = true;
-    detachInterrupt(digitalPinToInterrupt(7));
+    detachInterrupt(digitalPinToInterrupt(3));
 }
